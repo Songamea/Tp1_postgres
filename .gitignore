@@ -1,0 +1,25 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+
+# Virtualenvs
+tutorial-env/
+venv/
+env/
+
+# Environment / secrets
+.env
+*.env
+mongodb+srvleobatarda_db_userNNIcYg.txt
+
+# Editors / OS
+.vscode/
+.idea/
+Thumbs.db
+.DS_Store
+
+# Logs & caches
+*.log
+.pytest_cache/
+.ipynb_checkpoints/
