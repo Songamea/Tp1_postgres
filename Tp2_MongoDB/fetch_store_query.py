@@ -1,15 +1,8 @@
 #!/usr/bin/env python3
-"""Fetch data from an API, store it into MongoDB and demonstrate queries.
 
-Usage examples:
-  python fetch_store_query.py --insert
-  python fetch_store_query.py --insert --show
-  python fetch_store_query.py --api "https://api.example.com/data" --insert
-
-Configure `Tp2_MongoDB/.env` with `MONGO_URL`, `MONGO_DB`, `MONGO_COLLECTION` (and optional `API_URL`).
-"""
 import os
 import argparse
+import time
 import requests
 from connexion import load_env, get_collection
 
@@ -21,7 +14,6 @@ def fetch(api_url: str):
 
 
 def store(collection, data):
-    # If the API returns a list, insert_many; else insert_one.
     if isinstance(data, list):
         if not data:
             return []
@@ -44,7 +36,6 @@ def demo_queries(collection, limit: int = 5):
     for doc in collection.find({}, {"_id": 0}).sort([("_id", -1)]).limit(limit):
         print(doc)
 
-    # Aggregation example: group by a key if present
     print('\nAggregation sample (group by field "type" if exists):')
     pipeline = [
         {"$group": {"_id": "$type", "count": {"$sum": 1}}},
@@ -70,6 +61,29 @@ def main():
         "--show", action="store_true", help="Run example queries after insert"
     )
     parser.add_argument("--limit", type=int, default=5, help="Limit for demo queries")
+    parser.add_argument(
+        "--repeat",
+        type=int,
+        default=1,
+        help="Number of times to call the API and insert results",
+    )
+    parser.add_argument(
+        "--interval",
+        type=float,
+        default=0,
+        help="Seconds to wait between repeated requests",
+    )
+    parser.add_argument(
+        "--batch",
+        action="store_true",
+        help="Collect fetched items and do a single insert_many (or batched flushes)",
+    )
+    parser.add_argument(
+        "--batch-size",
+        type=int,
+        default=0,
+        help="If >0, flush the batch every N items (uses insert_many)",
+    )
     args = parser.parse_args()
 
     load_env(args.env)
@@ -78,23 +92,54 @@ def main():
     if not api_url:
         raise SystemExit("API URL not provided. Set API_URL in .env or pass --api")
 
-    try:
-        data = fetch(api_url)
-    except Exception as e:
-        raise SystemExit(f"Failed to fetch API: {e}")
-
-    print("Fetched data type:", type(data))
-
+    coll = None
     if args.insert:
         coll = get_collection()
-        try:
-            res = store(coll, data)
-            print("Inserted:", res)
-        except Exception as e:
-            raise SystemExit(f"Insert failed: {e}")
 
-        if args.show:
-            demo_queries(coll, limit=args.limit)
+    batch_items = []
+
+    for i in range(args.repeat):
+        try:
+            data = fetch(api_url)
+        except Exception as e:
+            print(f"Failed to fetch API on iteration {i+1}: {e}")
+            continue
+
+        print(f"Iteration {i+1}/{args.repeat} - fetched type:", type(data))
+
+        if args.insert and coll is not None:
+            if args.batch:
+                if isinstance(data, list):
+                    batch_items.extend(data)
+                else:
+                    batch_items.append(data)
+
+                if args.batch_size > 0 and len(batch_items) >= args.batch_size:
+                    try:
+                        res = coll.insert_many(batch_items)
+                        print(f"Flushed batch insert ({len(res.inserted_ids)} docs)")
+                    except Exception as e:
+                        print(f"Batch insert failed on iteration {i+1}: {e}")
+                    batch_items = []
+            else:
+                try:
+                    res = store(coll, data)
+                    print("Inserted:", res)
+                except Exception as e:
+                    print(f"Insert failed on iteration {i+1}: {e}")
+
+        if i < args.repeat - 1 and args.interval > 0:
+            time.sleep(args.interval)
+
+    if args.insert and args.batch and coll is not None and batch_items:
+        try:
+            res = coll.insert_many(batch_items)
+            print(f"Final batch inserted ({len(res.inserted_ids)} docs)")
+        except Exception as e:
+            print(f"Final batch insert failed: {e}")
+
+    if args.show and coll is not None:
+        demo_queries(coll, limit=args.limit)
 
 
 if __name__ == "__main__":
