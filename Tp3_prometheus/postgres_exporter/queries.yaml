@@ -1,0 +1,37 @@
+pg_stat_statements:
+  query: |
+    SELECT
+      queryid::text AS queryid,
+      dbid::text AS dbid,
+      query AS query_text,
+      calls,
+      total_time,
+      rows,
+      shared_blks_hit,
+      shared_blks_read
+    FROM pg_stat_statements;
+  metrics:
+    - name: pg_stat_statements_calls
+      type: counter
+      help: "Number of calls for statement"
+      values: ["calls"]
+    - name: pg_stat_statements_total_time
+      type: counter
+      help: "Total time (ms) spent in statement"
+      values: ["total_time"]
+    - name: pg_stat_statements_rows
+      type: counter
+      help: "Rows returned by statement"
+      values: ["rows"]
+    - name: pg_stat_statements_shared_blks_hit
+      type: counter
+      help: "Shared blocks hit"
+      values: ["shared_blks_hit"]
+    - name: pg_stat_statements_shared_blks_read
+      type: counter
+      help: "Shared blocks read"
+      values: ["shared_blks_read"]
+    - name: pg_stat_statements_query
+      type: gauge
+      help: "Query text (as label)"
+      values: ["query_text"]

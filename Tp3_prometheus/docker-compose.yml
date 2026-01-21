@@ -1,0 +1,54 @@
+version: '3.8'
+
+services:
+
+  postgres:
+    image: postgres:15
+    container_name: pg_perf
+    environment:
+      POSTGRES_USER: Songamea's Project
+      POSTGRES_PASSWORD: 63WTk*VjC7kahi-
+      POSTGRES_DB: mongo_user
+    ports:
+      - "5432:5432"
+
+  postgres_exporter:
+    image: prometheuscommunity/postgres-exporter
+    container_name: pg_exporter
+    environment:
+      DATA_SOURCE_NAME: "postgresql://postgres.jvjlguaiinvtamhgbkbi:63WTk*VjC7kahi-@aws-1-eu-central-1.pooler.supabase.com:6543/postgres"
+    ports:
+      - "9187:9187"
+    depends_on:
+      - postgres
+    volumes:
+      - ./postgres_exporter/queries.yaml:/etc/postgres-exporter/queries.yaml:ro
+
+  prometheus:
+    image: prom/prometheus
+    container_name: prometheus
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ./prometheus_alerts:/etc/prometheus/alerts:ro
+    ports:
+      - "9090:9090"
+    depends_on:
+      - postgres_exporter
+    restart: unless-stopped
+  grafana:
+    image: grafana/grafana
+    container_name: grafana
+    ports:
+      - "3000:3000"
+    depends_on:
+      - prometheus
+    volumes:
+      - ./grafana/provisioning:/etc/grafana/provisioning:ro
+    restart: unless-stopped
+
+  node_exporter:
+    image: prom/node-exporter
+    container_name: node_exporter
+    ports:
+      - "9100:9100"
+    restart: unless-stopped

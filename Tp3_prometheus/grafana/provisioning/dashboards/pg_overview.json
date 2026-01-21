@@ -1,0 +1,150 @@
+{
+    "annotations": {
+        "list": [
+            {
+                "builtIn": 1,
+                "datasource": "-- Grafana --",
+                "enable": true,
+                "hide": true,
+                "iconColor": "#000000",
+                "name": "Annotations & Alerts",
+                "type": "dashboard"
+            }
+        ]
+    },
+    "panels": [
+        {
+            "type": "timeseries",
+            "title": "CPU Usage (node_exporter)",
+            "gridPos": {
+                "x": 0,
+                "y": 0,
+                "w": 12,
+                "h": 6
+            },
+            "targets": [
+                {
+                    "expr": "(1 - avg by (instance) (rate(node_cpu_seconds_total{mode=\"idle\"}[1m]))) * 100",
+                    "legendFormat": "CPU %",
+                    "refId": "A"
+                }
+            ]
+        },
+        {
+            "type": "timeseries",
+            "title": "Memory Usage (node_exporter)",
+            "gridPos": {
+                "x": 12,
+                "y": 0,
+                "w": 12,
+                "h": 6
+            },
+            "targets": [
+                {
+                    "expr": "(node_memory_MemTotal_bytes - node_memory_MemAvailable_bytes) / node_memory_MemTotal_bytes * 100",
+                    "legendFormat": "Mem %",
+                    "refId": "A"
+                }
+            ]
+        },
+        {
+            "type": "stat",
+            "title": "Active Connections",
+            "gridPos": {
+                "x": 0,
+                "y": 6,
+                "w": 6,
+                "h": 4
+            },
+            "targets": [
+                {
+                    "expr": "sum(pg_stat_database_numbackends)",
+                    "refId": "A"
+                }
+            ]
+        },
+        {
+            "type": "stat",
+            "title": "Cache Hit Ratio",
+            "gridPos": {
+                "x": 6,
+                "y": 6,
+                "w": 6,
+                "h": 4
+            },
+            "targets": [
+                {
+                    "expr": "sum(rate(pg_stat_database_blks_hit[5m])) / (sum(rate(pg_stat_database_blks_hit[5m])) + sum(rate(pg_stat_database_blks_read[5m])))",
+                    "refId": "A"
+                }
+            ]
+        },
+        {
+            "type": "timeseries",
+            "title": "Transactions/sec",
+            "gridPos": {
+                "x": 12,
+                "y": 6,
+                "w": 12,
+                "h": 4
+            },
+            "targets": [
+                {
+                    "expr": "sum(rate(pg_stat_database_xact_commit[1m]) + rate(pg_stat_database_xact_rollback[1m]))",
+                    "refId": "A"
+                }
+            ]
+        },
+        {
+            "type": "timeseries",
+            "title": "Avg Query Time (ms)",
+            "gridPos": {
+                "x": 0,
+                "y": 10,
+                "w": 12,
+                "h": 6
+            },
+            "targets": [
+                {
+                    "expr": "sum(rate(pg_stat_statements_total_time[5m])) / sum(rate(pg_stat_statements_calls[5m]))",
+                    "refId": "A"
+                }
+            ]
+        },
+        {
+            "type": "timeseries",
+            "title": "Disk I/O (bytes/sec)",
+            "gridPos": {
+                "x": 12,
+                "y": 10,
+                "w": 12,
+                "h": 6
+            },
+            "targets": [
+                {
+                    "expr": "rate(node_disk_read_bytes_total[1m]) + rate(node_disk_written_bytes_total[1m])",
+                    "refId": "A"
+                }
+            ]
+        },
+        {
+            "type": "table",
+            "title": "Top queries by total time",
+            "gridPos": {
+                "x": 0,
+                "y": 16,
+                "w": 24,
+                "h": 8
+            },
+            "targets": [
+                {
+                    "expr": "topk(10, sum by (query_text) (rate(pg_stat_statements_total_time[5m])))",
+                    "refId": "A"
+                }
+            ]
+        }
+    ],
+    "schemaVersion": 36,
+    "title": "Postgres Overview",
+    "version": 1
+}
